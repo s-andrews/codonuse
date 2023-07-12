@@ -18,7 +18,8 @@ def main():
     # frequencies normalised to the most commonly used codon
     codon_table, amino_acid_frequencies, w_values = load_codon_table(options)
 
-    results = []
+
+    # Open the output file and print the headers.
     result_names = [
         "seq_name",
         "protein_length",
@@ -30,6 +31,10 @@ def main():
         "cai_zscore",
         "background_values"
     ]
+
+    out = open(options.outfile, "wt", encoding="utf8")
+
+    print("\t".join(result_names), file=out)
 
     # The seqfile can contain multiple sequences so we'll iterate through them
     # We read in the input sequence and get back both the name and the DNA
@@ -45,7 +50,11 @@ def main():
         weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
 
         # We translate the CDS to get the protein sequence.
-        protein_sequence = translate_cds(cds_sequence, codon_table)
+        try:
+            protein_sequence = translate_cds(cds_sequence, codon_table)
+        except:
+            continue
+        
 
         # We calculate the true observed CAI for this sequence
         log("Calcuating true CAI")
@@ -65,7 +74,7 @@ def main():
         normalised_cai = true_cai/expected_cai
         cai_zscore = (true_cai-expected_cai)/cai_stdev
 
-        results.append([
+        results = [
             seq_name,
             len(protein_sequence),
             gc,
@@ -75,18 +84,9 @@ def main():
             normalised_cai,
             cai_zscore,
             ":".join([str(x) for x in background_cai])
-        ])    
+        ]
 
-    write_results(result_names,results,options.outfile)
-
-
-def write_results(names, data, outfile):
-    log("Writing results to "+outfile)
-    with open(outfile,"wt",encoding="utf8") as out:
-        print("\t".join(names), file=out)
-
-        for result in data:
-            print("\t".join([str(x) for x in result]), file=out)
+        print("\t".join([str(x) for x in results]), file=out)
 
 
 def calculate_percent_gc(seq):
