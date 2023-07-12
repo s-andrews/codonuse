@@ -31,11 +31,10 @@ def main():
         "background_values"
     ]
 
-    for j,seqfile in enumerate(options.seqfile):
-        log("Processing sequence "+str(j+1)+" of "+str(len(options.seqfile)))
-        # Read in the input sequence and get back both the name and the DNA
-        # sequence.  Sequence will be DNA (not RNA) and upper case
-        seq_name,cds_sequence = read_cds_sequence(seqfile)
+    # The seqfile can contain multiple sequences so we'll iterate through them
+    # We read in the input sequence and get back both the name and the DNA
+    # sequence.  Sequence will be DNA (not RNA) and upper case
+    for seq_name,cds_sequence in read_cds_sequence(options.seqfile):
         log("Processing "+seq_name)
 
         if options.gc is None:
@@ -270,31 +269,30 @@ def load_codon_table(options):
 
 
 def read_cds_sequence(seqfile):
-    log("Reading CDS from"+str(seqfile))
+    log("Reading sequences from"+str(seqfile))
+
+    seq_name = ""
+    sequence = ""
+
     with open(seqfile,"rt", encoding="utf8") as infh:
-        header = infh.readline()
-        if not header.startswith(">"):
-            raise Exception("Sequence file"+seqfile+" isn't in fasta format (first line didn't start with >)")
 
-        seqname = header.split()[0][1:]
-
-        debug("Found sequence '"+seqname+"'")
-
-        sequence = ""
         for line in infh:
-            line = line.strip()
-            line = line.replace(" ","")
-            line = line.upper()
-            line = line.replace("U","T")
-            sequence += line
+            if line.startswith(">"):
+                if seq_name:
+                    yield(seq_name,sequence)
 
-        if not len(sequence)%3 == 0:
-            raise Exception("Length of sequence ("+str(len(sequence))+") was not a multiple of 3 - doesn't look like coding sequence")
+                seq_name = line.split()[0][1:]
+                sequence = ""
 
-        debug("Read sequence: "+sequence)
+            else:
+                line = line.strip()
+                line = line.replace(" ","")
+                line = line.upper()
+                line = line.replace("U","T")
+                sequence += line
 
-        return(seqname, sequence)
-
+        if seq_name:
+            return (seq_name,sequence)
 
 def log(message):
     if not QUIET:
@@ -314,7 +312,7 @@ def read_options():
     )
 
     parser.add_argument("species", type=str, help="Name of species - must match a codon file in the 'tables' directory")
-    parser.add_argument("seqfile", type=str, help="Filename(s) for fasta format file of mRNA coding sequence", nargs="+")
+    parser.add_argument("seqfile", type=str, help="Filename for (multi-)fasta format file of mRNA coding sequence")
     parser.add_argument("--outfile", type=str, help="Name of file into which to write results (default codonuse_output.txt)", default="codonuse_output.txt")
     parser.add_argument("--samples", type=int, default=500, help="Number of random sequences to generate (default 500)")
     parser.add_argument("--gc", default=None, help="Manually specific GC content (uses sequence GC otherwise)")
