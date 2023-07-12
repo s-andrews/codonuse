@@ -3,17 +3,51 @@
 import argparse
 from pathlib import Path
 import sys
+import math
 
 def main():
     options = read_options()
 
     seq_name,cds_sequence = read_cds_sequence(options)
-    codon_table, amino_acid_frequencies = load_codon_table(options)
+    codon_table, amino_acid_frequencies, w_values = load_codon_table(options)
     protein_sequence = translate_cds(cds_sequence, codon_table)
-    true_cai = calculate_cai(options)
+    true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
     background_cai = generate_background_cai(options)
 
     write_results()
+
+
+def calculate_cai(cds, aa, w_values):
+
+    # Calculation comes from https://journals.sagepub.com/doi/10.1177/117693430700300028
+
+    # First we count the observed codons
+    codon_count = {}
+    for i in range(len(aa)):
+        codon = cds[i:i+3]
+        if not codon in codon_count:
+            codon_count[codon] = 0
+        
+        codon_count[codon] += 1
+
+    # Now we get the sum of the ln(w) values for each codon
+    cai_sum = 0
+    for codon,count in codon_count.items():
+        cai_sum += count * math.log(w_values[codon])
+
+    debug("Log w sum is"+str(cai_sum))
+    # We divide the sum by the number of amino acids to 
+    # get the mean value per amino acid
+
+    cai_sum /= len(aa)
+
+    debug("Mean log w is"+str(cai_sum))
+
+    # Finally we get the cai value by taking the exponent of
+    # the average value
+
+    cai = math.e ** cai_sum
+    debug("CAI is "+str(cai))
 
 
 def translate_cds(cds, codons):
@@ -85,13 +119,15 @@ def load_codon_table(options):
     # so the most common codon gets a value of 1 and the others go down
     # from there.
 
+    w_values = {}
+
     for data in amino_acids.values():
         data.sort(key=lambda x:x["freq"], reverse=True)
         highest = data[0]["freq"]
         for item in data:
-            item["freq"] /= highest
+            w_values[item["codon"]] = item["freq"]/highest
 
-    return codons, amino_acids
+    return codons, amino_acids, w_values
 
 
 def read_cds_sequence(options):
