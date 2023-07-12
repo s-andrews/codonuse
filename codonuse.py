@@ -52,11 +52,17 @@ def load_codon_table(options):
     with open(file) as infh:
         for line in infh:
             line = line.strip()
+
+            # We need to remove spaces from things like "(  1234)" otherwise it breaks
+            # the splitting on whitespace
             while "( " in line:
                 line = line.replace("( ","(")
 
             sections = line.split()
             start = 0
+
+            # The lines consist of multiple sections which come in groups of 5. We only
+            # need the first 3 (codon, aa, freq) from each set of 5
             while (start+1 < len(sections)):
                 codon = sections[start]
                 codon = codon.upper().replace("U","T")
@@ -74,7 +80,18 @@ def load_codon_table(options):
 
                 start += 5
 
-        return codons, amino_acids
+    # We need to convert the frequency values into a w value, which is
+    # the frequency expressed as a proportion of the highest frequency
+    # so the most common codon gets a value of 1 and the others go down
+    # from there.
+
+    for data in amino_acids.values():
+        data.sort(key=lambda x:x["freq"], reverse=True)
+        highest = data[0]["freq"]
+        for item in data:
+            item["freq"] /= highest
+
+    return codons, amino_acids
 
 
 def read_cds_sequence(options):
