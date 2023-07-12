@@ -4,18 +4,155 @@ import argparse
 from pathlib import Path
 import sys
 import math
+import random
+import statistics
 
 def main():
+
+    # Get the options passed to the program
     options = read_options()
 
-    seq_name,cds_sequence = read_cds_sequence(options)
+    # Read in the codon table for the species they're using. We get back
+    # the translation table to be able to make protein sequence, the full
+    # frequency values for codon usage, and the w values which are the 
+    # frequencies normalised to the most commonly used codon
     codon_table, amino_acid_frequencies, w_values = load_codon_table(options)
-    protein_sequence = translate_cds(cds_sequence, codon_table)
-    true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
-    background_cai = generate_background_cai(options)
 
-    write_results()
+    results = []
+    result_names = [
+        "seq_name",
+        "protein_length",
+        "gc",
+        "true_cai",
+        "background_mean_cai",
+        "background_cai_stdev",
+        "normalised_cai",
+        "cai_zscore",
+        "background_values"
+    ]
 
+    for j,seqfile in enumerate(options.seqfile):
+        log("Processing sequence "+str(j+1)+" of "+str(len(options.seqfile)))
+        # Read in the input sequence and get back both the name and the DNA
+        # sequence.  Sequence will be DNA (not RNA) and upper case
+        seq_name,cds_sequence = read_cds_sequence(seqfile)
+        log("Processing "+seq_name)
+
+        if options.gc is None:
+            gc = calculate_percent_gc(cds_sequence)
+        else:
+            gc = options.gc
+
+        weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
+
+        # We translate the CDS to get the protein sequence.
+        protein_sequence = translate_cds(cds_sequence, codon_table)
+
+        # We calculate the true observed CAI for this sequence
+        log("Calcuating true CAI")
+        true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
+
+        # We generate a set of random sequences based on the composition of the
+        # real protein and using the GC content of the organism to pick which 
+        # codon to use from the set of synonymous options.  We then calculate the
+        # CAI values from these to generate a background
+        log("Generating background CAI distribution")
+        background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
+
+        # We now judge the true CAI against the set of random sequences.
+        log("Calculating CAI statistics")
+        expected_cai = statistics.mean(background_cai)
+        cai_stdev = statistics.stdev(background_cai)
+        normalised_cai = true_cai/expected_cai
+        cai_zscore = (true_cai-expected_cai)/cai_stdev
+
+        results.append([
+            seq_name,
+            len(protein_sequence),
+            gc,
+            true_cai,
+            expected_cai,
+            cai_stdev,
+            normalised_cai,
+            cai_zscore,
+            ":".join([str(x) for x in background_cai])
+        ])    
+
+    write_results(result_names,results,options.outfile)
+
+
+def write_results(names, data, outfile):
+    log("Writing results to "+outfile)
+    with open(outfile,"wt",encoding="utf8") as out:
+        print("\t".join(names), file=out)
+
+        for result in data:
+            print("\t".join([str(x) for x in result]), file=out)
+
+
+def calculate_percent_gc(seq):
+    log("Calculating GC from sequence as manual value not specified")
+    gc = 0
+
+    for i in seq:
+        if i=="G" or i=="C":
+            gc += 1
+
+    gc /= len(seq)
+    gc *= 100
+
+    return gc
+
+def calculate_weighted_codons (aafreqs, gc_percent):
+
+    log("Calculating weighted codons")
+
+    # The weighting values are just based on the GC content of the last base.
+
+    weighted_codons = {}
+
+    for aa in aafreqs.keys():
+        weighted_codons[aa] = {"codons": [], "weights": []}
+        for i in aafreqs[aa]:
+            codon = i["codon"]
+            weighted_codons[aa]["codons"].append(codon)
+            if codon.endswith("G") or codon.endswith("C"):
+                weighted_codons[aa]["weights"].append(gc_percent)
+            else:
+                weighted_codons[aa]["weights"].append(100-gc_percent)
+
+
+    return weighted_codons
+
+def backtranslate(seq, codons):
+    dna = []
+
+    for aa in seq:
+        dna.append(random.choices(codons[aa]["codons"], weights=codons[aa]["weights"])[0])
+
+    return "".join(dna)
+
+def generate_random_sequence(input_seq, weighted_codons):
+    protein_seq = []
+    for _ in range(len(input_seq)):
+        protein_seq.append(random.choice(input_seq))
+
+    protein_seq = "".join(protein_seq)
+    debug("Random protein "+protein_seq)
+
+    dna_seq = backtranslate(protein_seq, weighted_codons)
+    debug("Random DNA "+dna_seq)
+    return dna_seq
+
+def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
+    background_cai = []
+
+    for i in range(options.samples):
+        debug("Generating random sequence "+str(i+1))
+        seq = generate_random_sequence(protein_sequence, weighted_codons)
+        background_cai.append(calculate_cai(seq,protein_sequence,w_values))
+
+    return background_cai
 
 def calculate_cai(cds, aa, w_values):
 
@@ -48,6 +185,8 @@ def calculate_cai(cds, aa, w_values):
 
     cai = math.e ** cai_sum
     debug("CAI is "+str(cai))
+
+    return cai
 
 
 def translate_cds(cds, codons):
@@ -130,12 +269,12 @@ def load_codon_table(options):
     return codons, amino_acids, w_values
 
 
-def read_cds_sequence(options):
-    log("Reading CDS from"+options.seqfile)
-    with open(options.seqfile,"rt", encoding="utf8") as infh:
+def read_cds_sequence(seqfile):
+    log("Reading CDS from"+str(seqfile))
+    with open(seqfile,"rt", encoding="utf8") as infh:
         header = infh.readline()
         if not header.startswith(">"):
-            raise Exception("Sequence file"+options.seqfile+" isn't in fasta format (first line didn't start with >)")
+            raise Exception("Sequence file"+seqfile+" isn't in fasta format (first line didn't start with >)")
 
         seqname = header.split()[0][1:]
 
@@ -174,9 +313,10 @@ def read_options():
         epilog="Report problems at https://github.com/s-andrews/codonuse/issues"
     )
 
-    parser.add_argument("seqfile", type=str, help="Filename for fasta format file of mRNA coding sequence")
     parser.add_argument("species", type=str, help="Name of species - must match a codon file in the 'tables' directory")
-    parser.add_argument("--samples", type=int, default=500, help="Number of random sequences to generate")
+    parser.add_argument("seqfile", type=str, help="Filename(s) for fasta format file of mRNA coding sequence", nargs="+")
+    parser.add_argument("--outfile", type=str, help="Name of file into which to write results (default codonuse_output.txt)", default="codonuse_output.txt")
+    parser.add_argument("--samples", type=int, default=500, help="Number of random sequences to generate (default 500)")
     parser.add_argument("--gc", default=None, help="Manually specific GC content (uses sequence GC otherwise)")
     parser.add_argument("--quiet", action="store_true", help="Suppress all progress messages")
     parser.add_argument("--debug", action="store_true", help="Show verbose debugging messages")
