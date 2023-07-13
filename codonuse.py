@@ -335,7 +335,7 @@ def read_options():
     parser.add_argument("seqfile", type=str, help="Filename for (multi-)fasta format file of mRNA coding sequence")
     parser.add_argument("--outfile", type=str, help="Name of file into which to write results (default codonuse_output.txt)", default="codonuse_output.txt")
     parser.add_argument("--samples", type=int, default=500, help="Number of random sequences to generate (default 500)")
-    parser.add_argument("--gc", default=None, help="Manually specific GC content (uses sequence GC otherwise)")
+    parser.add_argument("--gc", type=int, default=None, help="Manually specific GC content (uses sequence GC otherwise)")
     parser.add_argument("--quiet", action="store_true", help="Suppress all progress messages")
     parser.add_argument("--debug", action="store_true", help="Show verbose debugging messages")
     parser.add_argument("--random", type=str, choices=['markov','shuffle'], default="markov", help="Method to generate random sequences, values are 'markvov' (default) or 'shuffle'")
