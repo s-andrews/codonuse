@@ -12,21 +12,25 @@ The basic measurement used is the Codon Adaption Index, which was originall desc
 The structure for running the program is as follows
 
 ```
-usage: codonuse.py [-h] [--outfile OUTFILE] [--samples SAMPLES] [--gc GC] [--quiet] [--debug] species seqfile
+usage: codonuse.py [-h] [--version] [--outfile OUTFILE] [--samples SAMPLES] [--gc GC] [--quiet] [--debug] [--random {markov,shuffle}]
+                   species seqfile
 
 Calculate the Codon Adaptive Index for a sequence and compare to a reference set
 
 positional arguments:
-  species            Name of species - must match a codon file in the 'tables' directory
-  seqfile            Filename for (multi-)fasta format file of mRNA coding sequence
+  species               Name of species - must match a codon file in the 'tables' directory
+  seqfile               Filename for (multi-)fasta format file of mRNA coding sequence
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --outfile OUTFILE  Name of file into which to write results (default codonuse_output.txt)
-  --samples SAMPLES  Number of random sequences to generate (default 500)
-  --gc GC            Manually specific GC content (uses sequence GC otherwise)
-  --quiet            Suppress all progress messages
-  --debug            Show verbose debugging messages
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --outfile OUTFILE     Name of file into which to write results (default codonuse_output.txt)
+  --samples SAMPLES     Number of random sequences to generate (default 500)
+  --gc GC               Manually specific GC content (uses sequence GC otherwise)
+  --quiet               Suppress all progress messages
+  --debug               Show verbose debugging messages
+  --random {markov,shuffle}
+                        Method to generate random sequences, values are 'markvov' (default) or 'shuffle'
 
 Report problems at https://github.com/s-andrews/codonuse/issues
 ```
@@ -37,13 +41,22 @@ You need to supply
 
 2. A species name - this must match the name of one of the codon preference tables in the ```tables``` directory of the program.  We have included some common species but you can add support for more by adding in your own codon table based on the data in https://www.kazusa.or.jp/codon/
 
-To run the program with the example data provided you would run:
+To run the program with a single example sequence you can run:
 
 ```
-python3 codonuse.py drosophila test_data/all_drosophila.txt
+python3 codonuse.py drosophila test_data/wingless.fa
 ```
 
-The output will be written to a file called ```codonuse_output.txt``` but you can change this by providing the ```--outfile``` argument
+The output will be written to a file called ```codonuse_output.txt``` 
+
+For a more complete analysis you can run:
+
+```
+python3 codonuse.py --outfile test_data/all_drosophila_cai.txt --gc=53 drosophila test_data/all_drosophila.fa
+```
+
+This will generate output for all protein coding genes in the drosophila genome.
+
 
 
 ## Output Format
