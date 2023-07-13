@@ -67,6 +67,7 @@ def main():
         # codon to use from the set of synonymous options.  We then calculate the
         # CAI values from these to generate a background
         log("Generating background CAI distribution")
+
         background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
 
         # We now judge the true CAI against the set of random sequences.
@@ -133,12 +134,18 @@ def backtranslate(seq, codons):
 
     return "".join(dna)
 
-def generate_random_sequence(input_seq, weighted_codons):
-    protein_seq = []
-    for _ in range(len(input_seq)):
-        protein_seq.append(random.choice(input_seq))
+def generate_random_sequence(input_seq, weighted_codons, method):
+    # If we're not doing markov sampling then we just reuse the existing protin
+    # sequence and reassign codons
+    protein_seq = input_seq
 
-    protein_seq = "".join(protein_seq)
+    if method=="markov":
+        protein_seq = []
+
+        for _ in range(len(input_seq)):
+            protein_seq.append(random.choice(input_seq))
+
+        protein_seq = "".join(protein_seq)
     debug("Random protein "+protein_seq)
 
     dna_seq = backtranslate(protein_seq, weighted_codons)
@@ -150,7 +157,7 @@ def generate_background_cai(protein_sequence, weighted_codons, w_values, options
 
     for i in range(options.samples):
         debug("Generating random sequence "+str(i+1))
-        seq = generate_random_sequence(protein_sequence, weighted_codons)
+        seq = generate_random_sequence(protein_sequence, weighted_codons, options.random)
         background_cai.append(calculate_cai(seq,protein_sequence,w_values))
 
     return background_cai
@@ -321,7 +328,7 @@ def read_options():
     parser.add_argument("--gc", default=None, help="Manually specific GC content (uses sequence GC otherwise)")
     parser.add_argument("--quiet", action="store_true", help="Suppress all progress messages")
     parser.add_argument("--debug", action="store_true", help="Show verbose debugging messages")
-    parser.add_argument("--random", type=str, default="markov", help="Method to generate random sequences, values are 'markvov' (default) or 'shuffle'")
+    parser.add_argument("--random", type=str, choices=['markov','shuffle'], default="markov", help="Method to generate random sequences, values are 'markvov' (default) or 'shuffle'")
 
     options = parser.parse_args()
 
