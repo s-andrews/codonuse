@@ -20,6 +20,13 @@ def main():
     # frequencies normalised to the most commonly used codon
     codon_table, amino_acid_frequencies, w_values = load_codon_table(options)
 
+    # Make a weighted set of codons.  We can only do this if they specified
+    # a fixed GC for all analyses, otherwise we have to recalculate per
+    # sequence as the GC will be different in all cases.
+    weighted_codons = None
+
+    if options.gc is not None:
+        weighted_codons = calculate_weighted_codons(amino_acid_frequencies, options.gc)
 
     # Open the output file and print the headers.
     result_names = [
@@ -46,11 +53,11 @@ def main():
 
         if options.gc is None:
             gc = calculate_percent_gc(cds_sequence)
+            weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
         else:
             gc = options.gc
 
-        weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
-
+        
         # We translate the CDS to get the protein sequence.
         try:
             protein_sequence = translate_cds(cds_sequence, codon_table)
