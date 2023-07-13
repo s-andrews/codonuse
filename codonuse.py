@@ -68,6 +68,9 @@ def main():
         # CAI values from these to generate a background
         log("Generating background CAI distribution")
 
+        # We'll fix the random seed here so that we get a reproducible set of 
+        # random sequences against which to judge the sequence we're analysing.
+        random.seed(1270)
         background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
 
         # We now judge the true CAI against the set of random sequences.
