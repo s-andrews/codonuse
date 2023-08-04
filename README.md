@@ -54,7 +54,7 @@ The output will be written to a file called ```codonuse_output.txt```
 For a more complete analysis you can run:
 
 ```
-python3 codonuse.py --outfile test_data/drosophila_cai.txt --gc=53 --threads=4 drosophila test_data/drosophila.fa
+python3 codonuse.py --outfile test_data/drosophila_cai.txt --gc=53 --threads=4 drosophila test_data/drosophila_test.fa
 ```
 
 This will generate output for a larger collection of protein coding genes in the drosophila genome.
