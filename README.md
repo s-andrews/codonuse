@@ -12,7 +12,8 @@ The basic measurement used is the Codon Adaption Index, which was originall desc
 The structure for running the program is as follows
 
 ```
-usage: codonuse.py [-h] [--version] [--outfile OUTFILE] [--samples SAMPLES] [--gc GC] [--quiet] [--debug] [--random {markov,shuffle}]
+usage: codonuse.py [-h] [--version] [--outfile OUTFILE] [--samples SAMPLES] [--gc GC] [--quiet] [--debug]
+                   [--random {markov,shuffle}] [--threads THREADS]
                    species seqfile
 
 Calculate the Codon Adaptive Index for a sequence and compare to a reference set
@@ -31,6 +32,7 @@ optional arguments:
   --debug               Show verbose debugging messages
   --random {markov,shuffle}
                         Method to generate random sequences, values are 'markvov' (default) or 'shuffle'
+  --threads THREADS     Number of threads to use
 
 Report problems at https://github.com/s-andrews/codonuse/issues
 ```
@@ -52,10 +54,10 @@ The output will be written to a file called ```codonuse_output.txt```
 For a more complete analysis you can run:
 
 ```
-python3 codonuse.py --outfile test_data/all_drosophila_cai.txt --gc=53 drosophila test_data/all_drosophila.fa
+python3 codonuse.py --outfile test_data/drosophila_cai.txt --gc=53 --threads=4 drosophila test_data/drosophila.fa
 ```
 
-This will generate output for all protein coding genes in the drosophila genome.
+This will generate output for a larger collection of protein coding genes in the drosophila genome.
 
 
 
