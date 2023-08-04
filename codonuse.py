@@ -18,6 +18,7 @@ import sys
 import math
 import random
 import statistics
+from multiprocess import Pool
 
 VERSION = "1.0.0"
 
@@ -175,11 +176,14 @@ def generate_random_sequence(input_seq, weighted_codons, method):
     return dna_seq
 
 def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
-    background_cai = []
+    # background_cai = []
 
-    for i in range(options.samples):
-        debug("Generating random sequence "+str(i+1))
-        background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
+    with Pool(options.threads) as pool:
+        background_cai = pool.map(lambda x: generate_random_cai(protein_sequence,weighted_codons,options.random,w_values), range(options.samples))
+
+    # for i in range(options.samples):
+    #     debug("Generating random sequence "+str(i+1))
+    #     background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
 
     return background_cai
 
@@ -356,6 +360,7 @@ def read_options():
     parser.add_argument("--quiet", action="store_true", help="Suppress all progress messages")
     parser.add_argument("--debug", action="store_true", help="Show verbose debugging messages")
     parser.add_argument("--random", type=str, choices=['markov','shuffle'], default="markov", help="Method to generate random sequences, values are 'markvov' (default) or 'shuffle'")
+    parser.add_argument("--threads", type=int, help="Number of threads to use", default=1)
 
     options = parser.parse_args()
 
