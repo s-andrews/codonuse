@@ -179,10 +179,15 @@ def generate_background_cai(protein_sequence, weighted_codons, w_values, options
 
     for i in range(options.samples):
         debug("Generating random sequence "+str(i+1))
-        seq = generate_random_sequence(protein_sequence, weighted_codons, options.random)
-        background_cai.append(calculate_cai(seq,protein_sequence,w_values))
+        background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
 
     return background_cai
+
+
+def generate_random_cai(protein_sequence, weighted_codons, randomtype, w_values):
+    seq = generate_random_sequence(protein_sequence, weighted_codons, randomtype)
+    cai = calculate_cai(seq,protein_sequence,w_values)
+    return cai
 
 def calculate_cai(cds, aa, w_values):
 
