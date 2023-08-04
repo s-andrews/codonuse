@@ -91,14 +91,14 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
     
 
     # We calculate the true observed CAI for this sequence
-    log("Calcuating true CAI")
+    debug("Calcuating true CAI")
     true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
 
     # We generate a set of random sequences based on the composition of the
     # real protein and using the GC content of the organism to pick which 
     # codon to use from the set of synonymous options.  We then calculate the
     # CAI values from these to generate a background
-    log("Generating background CAI distribution")
+    debug("Generating background CAI distribution")
 
     # We'll fix the random seed here so that we get a reproducible set of 
     # random sequences against which to judge the sequence we're analysing.
@@ -238,7 +238,7 @@ def calculate_cai(cds, aa, w_values):
 
 
 def translate_cds(cds, codons):
-    log("Translating CDS to AA sequence")
+    debug("Translating CDS to AA sequence")
     aa_seq = ""
 
     index = 0
@@ -318,7 +318,7 @@ def load_codon_table(options):
 
 
 def read_cds_sequence(seqfile):
-    log("Reading sequences from"+str(seqfile))
+    log("Reading sequences from "+str(seqfile))
 
     seq_name = ""
     sequence = ""
