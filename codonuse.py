@@ -63,7 +63,7 @@ def main():
     # sequence.  Sequence will be DNA (not RNA) and upper case
 
     with Pool(options.threads) as pool:
-        results = pool.map(lambda x: process_sequence(x[0],x[1],options,amino_acid_frequencies,codon_table,w_values),read_cds_sequence(options.seqfile))
+        results = pool.map(lambda x: process_sequence(x[0],x[1],options,amino_acid_frequencies,codon_table,w_values,weighted_codons),read_cds_sequence(options.seqfile))
 
 
     for r in results:
@@ -73,7 +73,7 @@ def main():
     #     process_sequence(seq_name,cds_sequence,options,amino_acid_frequencies,codon_table,w_values,out)
 
 
-def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon_table,w_values):
+def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon_table,w_values,weighted_codons):
     log("Processing "+seq_name)
 
     if options.gc is None:
@@ -116,12 +116,12 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
         seq_name,
         len(protein_sequence),
         gc,
-        true_cai,
-        expected_cai,
-        cai_stdev,
-        normalised_cai,
-        cai_zscore,
-        ":".join([str(x) for x in background_cai])
+        round(true_cai,3),
+        round(expected_cai,3),
+        round(cai_stdev,3),
+        round(normalised_cai,3),
+        round(cai_zscore,3),
+        ":".join([str(round(x,3)) for x in background_cai])
     ]
 
     return "\t".join([str(x) for x in results])
