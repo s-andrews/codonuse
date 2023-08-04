@@ -61,58 +61,70 @@ def main():
     # The seqfile can contain multiple sequences so we'll iterate through them
     # We read in the input sequence and get back both the name and the DNA
     # sequence.  Sequence will be DNA (not RNA) and upper case
-    for seq_name,cds_sequence in read_cds_sequence(options.seqfile):
-        log("Processing "+seq_name)
 
-        if options.gc is None:
-            gc = calculate_percent_gc(cds_sequence)
-            weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
-        else:
-            gc = options.gc
+    with Pool(options.threads) as pool:
+        results = pool.map(lambda x: process_sequence(x[0],x[1],options,amino_acid_frequencies,codon_table,w_values),read_cds_sequence(options.seqfile))
 
-        
-        # We translate the CDS to get the protein sequence.
-        try:
-            protein_sequence = translate_cds(cds_sequence, codon_table)
-        except:
-            continue
-        
 
-        # We calculate the true observed CAI for this sequence
-        log("Calcuating true CAI")
-        true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
+    for r in results:
+        print(r,file=out)
 
-        # We generate a set of random sequences based on the composition of the
-        # real protein and using the GC content of the organism to pick which 
-        # codon to use from the set of synonymous options.  We then calculate the
-        # CAI values from these to generate a background
-        log("Generating background CAI distribution")
+    # for seq_name,cds_sequence in read_cds_sequence(options.seqfile):
+    #     process_sequence(seq_name,cds_sequence,options,amino_acid_frequencies,codon_table,w_values,out)
 
-        # We'll fix the random seed here so that we get a reproducible set of 
-        # random sequences against which to judge the sequence we're analysing.
-        random.seed(1270)
-        background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
 
-        # We now judge the true CAI against the set of random sequences.
-        log("Calculating CAI statistics")
-        expected_cai = statistics.mean(background_cai)
-        cai_stdev = statistics.stdev(background_cai)
-        normalised_cai = true_cai/expected_cai
-        cai_zscore = (true_cai-expected_cai)/cai_stdev
+def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon_table,w_values):
+    log("Processing "+seq_name)
 
-        results = [
-            seq_name,
-            len(protein_sequence),
-            gc,
-            true_cai,
-            expected_cai,
-            cai_stdev,
-            normalised_cai,
-            cai_zscore,
-            ":".join([str(x) for x in background_cai])
-        ]
+    if options.gc is None:
+        gc = calculate_percent_gc(cds_sequence)
+        weighted_codons = calculate_weighted_codons(amino_acid_frequencies, gc)
+    else:
+        gc = options.gc
 
-        print("\t".join([str(x) for x in results]), file=out)
+    
+    # We translate the CDS to get the protein sequence.
+    try:
+        protein_sequence = translate_cds(cds_sequence, codon_table)
+    except:
+        return
+    
+
+    # We calculate the true observed CAI for this sequence
+    log("Calcuating true CAI")
+    true_cai = calculate_cai(cds_sequence, protein_sequence, w_values)
+
+    # We generate a set of random sequences based on the composition of the
+    # real protein and using the GC content of the organism to pick which 
+    # codon to use from the set of synonymous options.  We then calculate the
+    # CAI values from these to generate a background
+    log("Generating background CAI distribution")
+
+    # We'll fix the random seed here so that we get a reproducible set of 
+    # random sequences against which to judge the sequence we're analysing.
+    random.seed(1270)
+    background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
+
+    # We now judge the true CAI against the set of random sequences.
+    log("Calculating CAI statistics")
+    expected_cai = statistics.mean(background_cai)
+    cai_stdev = statistics.stdev(background_cai)
+    normalised_cai = true_cai/expected_cai
+    cai_zscore = (true_cai-expected_cai)/cai_stdev
+
+    results = [
+        seq_name,
+        len(protein_sequence),
+        gc,
+        true_cai,
+        expected_cai,
+        cai_stdev,
+        normalised_cai,
+        cai_zscore,
+        ":".join([str(x) for x in background_cai])
+    ]
+
+    return "\t".join([str(x) for x in results])
 
 
 def calculate_percent_gc(seq):
@@ -176,14 +188,11 @@ def generate_random_sequence(input_seq, weighted_codons, method):
     return dna_seq
 
 def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
-    # background_cai = []
+    background_cai = []
 
-    with Pool(options.threads) as pool:
-        background_cai = pool.map(lambda x: generate_random_cai(protein_sequence,weighted_codons,options.random,w_values), range(options.samples))
-
-    # for i in range(options.samples):
-    #     debug("Generating random sequence "+str(i+1))
-    #     background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
+    for i in range(options.samples):
+         debug("Generating random sequence "+str(i+1))
+         background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
 
     return background_cai
 
