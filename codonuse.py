@@ -328,7 +328,7 @@ def read_cds_sequence(seqfile):
                 sequence += line
 
         if seq_name:
-            return (seq_name,sequence)
+            yield (seq_name,sequence)
 
 def log(message):
     if not QUIET:
