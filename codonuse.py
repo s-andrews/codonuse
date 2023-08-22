@@ -21,7 +21,7 @@ import statistics
 import hashlib
 from multiprocess import Pool
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 def main():
 
@@ -101,9 +101,6 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
     # CAI values from these to generate a background
     debug("Generating background CAI distribution")
 
-    # We'll fix the random seed here so that we get a reproducible set of 
-    # random sequences against which to judge the sequence we're analysing.
-    random.seed(1270)
     background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
 
     # We now judge the true CAI against the set of random sequences.
