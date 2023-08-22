@@ -23,6 +23,9 @@ from multiprocess import Pool
 
 VERSION = "1.1.0"
 
+QUIET = False
+DEBUG = False
+
 def main():
 
     # Get the options passed to the program
@@ -107,6 +110,7 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
     log("Calculating CAI statistics")
     expected_cai = statistics.mean(background_cai)
     cai_stdev = statistics.stdev(background_cai)
+    print(cai_stdev)
     normalised_cai = true_cai/expected_cai
     cai_zscore = (true_cai-expected_cai)/cai_stdev
 
