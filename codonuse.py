@@ -18,7 +18,8 @@ import sys
 import math
 import random
 import statistics
-from multiprocess import Pool
+import hashlib
+from multiprocessing import Pool
 
 VERSION = "1.0.0"
 
@@ -189,6 +190,17 @@ def generate_random_sequence(input_seq, weighted_codons, method):
 
 def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
     background_cai = []
+
+    # To make this deterministic we set the random seed
+    # to a value based on the protein sequence so we'll
+    # always get the same answer for the same sequence
+
+    random.seed(
+        int(
+            hashlib.md5(protein_sequence.encode("utf8")).hexdigest(),
+            base=16
+        )
+    )
 
     for i in range(options.samples):
          debug("Generating random sequence "+str(i+1))
