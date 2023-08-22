@@ -19,7 +19,7 @@ import math
 import random
 import statistics
 import hashlib
-from multiprocessing import Pool
+from multiprocess import Pool
 
 VERSION = "1.0.0"
 
