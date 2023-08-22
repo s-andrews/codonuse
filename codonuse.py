@@ -110,7 +110,15 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
     log("Calculating CAI statistics")
     expected_cai = statistics.mean(background_cai)
     cai_stdev = statistics.stdev(background_cai)
-    print(cai_stdev)
+
+    # In corner cases it's possible for the the CAI values in the background
+    # to all be the same, generating a zero stdev, so in these cases we have
+    # to set an arbitrarily low value so it doesn't generate a divide by zero
+    # error
+    if cai_stdev == 0:
+        cai_stdev = 0.001
+        log("Setting zero stdev to 0.001")
+
     normalised_cai = true_cai/expected_cai
     cai_zscore = (true_cai-expected_cai)/cai_stdev
 
