@@ -71,7 +71,8 @@ def main():
 
 
     for r in results:
-        print(r,file=out)
+        if r is not None: # We'd get this if the translation failed
+            print(r,file=out)
 
     # for seq_name,cds_sequence in read_cds_sequence(options.seqfile):
     #     process_sequence(seq_name,cds_sequence,options,amino_acid_frequencies,codon_table,w_values,out)
@@ -272,6 +273,7 @@ def translate_cds(cds, codons):
         aa_seq = aa_seq[:-1]
 
     if "*" in aa_seq:
+        log("Sequence translated with internal stops. Can't continue")
         raise Exception("Sequence translated with internal stops. Can't continue")
 
 
