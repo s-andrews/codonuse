@@ -257,6 +257,9 @@ def calculate_cai(cds, aa, w_values):
     breakpoint()
     for aa in aa_count.keys():
         for codon in aa_count[aa].keys():
+            if not codon in w_values:
+                # This must come from a single codon family so skip it
+                continue
             total_freqs += aa_count[aa][codon]
             total_logw += math.log(w_values[codon])*aa_count[aa][codon]
 
