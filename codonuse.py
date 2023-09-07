@@ -358,6 +358,11 @@ def load_codon_table(options):
 
         # Now calculate w values for each family
         for family in families.values():
+            # If we have a family with only one member then we exclude it as it 
+            # provides no useful information
+            if len(family) == 1:
+                debug(f"Skipping family {family[0]['codon'][:2]} with only 1 member")
+                continue
             family.sort(key=lambda x:x["freq"], reverse=True)
             highest = family[0]["freq"]
             debug(f"For AA {aa} family {family[0]['codon'][:2]} highest frequency is {highest}")
