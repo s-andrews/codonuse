@@ -242,11 +242,12 @@ def calculate_cai(cds, aa, w_values):
         aa_count[thisaa][codon] += 1
 
     # We need to convert the counts into frequencies per amino acid
+    total = 0
     for aa in aa_count.keys():
-        total = 0
         for count in aa_count[aa].values():
             total += count
 
+    for aa in aa_count.keys():
         for codon in aa_count[aa].keys():
             aa_count[aa][codon] /= total
 
