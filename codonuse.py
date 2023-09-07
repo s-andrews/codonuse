@@ -338,15 +338,32 @@ def load_codon_table(options):
     # so the most common codon gets a value of 1 and the others go down
     # from there.
 
-    w_values = {}
+    # A complication is that the variation is only in the last base of 
+    # the triplet and that some amino acids have more than one 'family'
+    # where there is more than one combination of first codons which 
+    # encode the same amino acid.  We need to calculate the w values
+    # separately for each of these families.
+
+    w_values = {}    
 
     for aa,data in amino_acids.items():
-        data.sort(key=lambda x:x["freq"], reverse=True)
-        highest = data[0]["freq"]
-        debug(f"For AA {aa} highest frequency is {highest}")
+
+        # First split into families
+        families = {}
         for item in data:
-            w_values[item["codon"]] = item["freq"]/highest
-            debug(f"For codon {item['codon']} freq is {item['freq']} w is {w_values[item['codon']]}")
+            family = item["codon"][:2]
+            if not family in families:
+                families[family] = []
+            families[family].append(item)
+
+        # Now calculate w values for each family
+        for family in families.values():
+            family.sort(key=lambda x:x["freq"], reverse=True)
+            highest = family[0]["freq"]
+            debug(f"For AA {aa} family {family[0]['codon'][:2]} highest frequency is {highest}")
+            for item in family:
+                w_values[item["codon"]] = item["freq"]/highest
+                debug(f"For codon {item['codon']} freq is {item['freq']} w is {w_values[item['codon']]}")
 
     return codons, amino_acids, w_values
 
