@@ -228,34 +228,43 @@ def calculate_cai(cds, aa, w_values):
 
     # Calculation comes from https://journals.sagepub.com/doi/10.1177/117693430700300028
 
-    # First we count the observed codons
-    codon_count = {}
+    # We need to get the frequency of codon uses for each amino acid
+    aa_count = {}
     for i in range(len(aa)):
-        codon = cds[i:i+3]
-        if not codon in codon_count:
-            codon_count[codon] = 0
-        
-        codon_count[codon] += 1
+        thisaa = aa[i]
+        codon = cds[i*3:(i*3)+3]
+        if not thisaa in aa_count:
+            aa_count[thisaa] = {}
 
-    # Now we get the sum of the ln(w) values for each codon
-    cai_sum = 0
-    for codon,count in codon_count.items():
-        cai_sum += count * math.log(w_values[codon])
+        if not codon in aa_count[thisaa]:
+            aa_count[thisaa][codon] = 0
 
-    debug("Log w sum is"+str(cai_sum))
-    # We divide the sum by the number of amino acids to 
-    # get the mean value per amino acid
+        aa_count[thisaa][codon] += 1
 
-    cai_sum /= len(aa)
+    # We need to convert the counts into frequencies per amino acid
+    for aa in aa_count.keys():
+        total = 0
+        for count in aa_count[aa].values():
+            total += count
 
-    debug("Mean log w is"+str(cai_sum))
+        for codon in aa_count[aa].keys():
+            aa_count[aa][codon] /= total
 
-    # Finally we get the cai value by taking the exponent of
-    # the average value
 
-    cai = math.e ** cai_sum
-    debug("CAI is "+str(cai))
+    total_freqs = 0
+    total_logw = 0
 
+    breakpoint()
+    for aa in aa_count.keys():
+        for codon in aa_count[aa].keys():
+            total_freqs += aa_count[aa][codon]
+            total_logw += math.log(w_values[codon])*aa_count[aa][codon]
+
+    debug(f"Total logw {total_logw} total freqs {total_freqs}")
+
+    cai = math.e ** (total_logw/total_freqs)
+
+    log(f"CAI is {cai}")
     return cai
 
 
@@ -331,11 +340,13 @@ def load_codon_table(options):
 
     w_values = {}
 
-    for data in amino_acids.values():
+    for aa,data in amino_acids.items():
         data.sort(key=lambda x:x["freq"], reverse=True)
         highest = data[0]["freq"]
+        debug(f"For AA {aa} highest frequency is {highest}")
         for item in data:
             w_values[item["codon"]] = item["freq"]/highest
+            debug(f"For codon {item['codon']} freq is {item['freq']} w is {w_values[item['codon']]}")
 
     return codons, amino_acids, w_values
 
