@@ -155,48 +155,55 @@ def calculate_weighted_codons (aafreqs, gc_percent):
 
     log("Calculating weighted codons")
 
-    # The weighting values are just based on the GC content of the last base.
+    # The weighting values are just based on the GC content of the last base.  In some cases
+    # we have more than one set of codons which vary at the last base position so we need
+    # to split those so that we weight the two groups separately.
 
     weighted_codons = {}
 
     for aa in aafreqs.keys():
-        weighted_codons[aa] = {"codons": [], "weights": []}
+        weighted_codons[aa] = {}
         for i in aafreqs[aa]:
             codon = i["codon"]
-            weighted_codons[aa]["codons"].append(codon)
+            family = codon[:2]
+            if not family in weighted_codons[aa]:
+                weighted_codons[aa][family]={"codons":[], "weights": []}
+            weighted_codons[aa][family]["codons"].append(codon)
             if codon.endswith("G") or codon.endswith("C"):
-                weighted_codons[aa]["weights"].append(gc_percent)
+                weighted_codons[aa][family]["weights"].append(gc_percent)
             else:
-                weighted_codons[aa]["weights"].append(100-gc_percent)
-
+                weighted_codons[aa][family]["weights"].append(100-gc_percent)
 
     return weighted_codons
 
-def backtranslate(seq, codons):
-    dna = []
 
-    for aa in seq:
-        dna.append(random.choices(codons[aa]["codons"], weights=codons[aa]["weights"])[0])
-
-    return "".join(dna)
-
-def generate_random_sequence(input_seq, weighted_codons, method):
-    # If we're not doing markov sampling then we just reuse the existing protin
+def generate_random_sequence(input_aa_seq, input_cds_seq,weighted_codons, method):
+    # If we're not doing markov sampling then we just reuse the existing protein
     # sequence and reassign codons
-    protein_seq = input_seq
+    protein_seq = input_aa_seq
+
+    # For the sampling we need to select a random amino acid, but we also need to 
+    # know the codon family it came from so we need the first two bases of the
+    # codon
 
     if method=="markov":
-        protein_seq = []
+        cds = []
 
-        for _ in range(len(input_seq)):
-            protein_seq.append(random.choice(input_seq))
+        for _ in range(len(input_aa_seq)):
+            position = random.randint(0,len(input_aa_seq)-1)
+            amino_acid = input_aa_seq[position]
+            codon_family = input_cds_seq[position*3:(position*3)+2]
 
-        protein_seq = "".join(protein_seq)
-    debug("Random protein "+protein_seq)
+            # We now need to select a random weighted codon from 
+            # that family to add to the CDS
 
-    dna_seq = backtranslate(protein_seq, weighted_codons)
-    debug("Random DNA "+dna_seq)
-    return dna_seq
+            cds.append(random.choices(weighted_codons[amino_acid][codon_family]["codons"], weights=weighted_codons[amino_acid][codon_family]["weights"])[0])
+
+
+
+    random_sequence = "".join(cds)
+    debug("Random DNA "+random_sequence)
+    return random_sequence
 
 def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
     background_cai = []
@@ -255,7 +262,6 @@ def calculate_cai(cds, aa, w_values):
     total_freqs = 0
     total_logw = 0
 
-    breakpoint()
     for aa in aa_count.keys():
         for codon in aa_count[aa].keys():
             if not codon in w_values:
@@ -268,7 +274,7 @@ def calculate_cai(cds, aa, w_values):
 
     cai = math.e ** (total_logw/total_freqs)
 
-    log(f"CAI is {cai}")
+    debug(f"CAI is {cai}")
     return cai
 
 
