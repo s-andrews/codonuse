@@ -105,7 +105,7 @@ def process_sequence(seq_name, cds_sequence,options,amino_acid_frequencies,codon
     # CAI values from these to generate a background
     debug("Generating background CAI distribution")
 
-    background_cai = generate_background_cai(protein_sequence, weighted_codons, w_values, options)
+    background_cai = generate_background_cai(protein_sequence, cds_sequence, weighted_codons, w_values, options)
 
     # We now judge the true CAI against the set of random sequences.
     log("Calculating CAI statistics")
@@ -205,7 +205,7 @@ def generate_random_sequence(input_aa_seq, input_cds_seq,weighted_codons, method
     debug("Random DNA "+random_sequence)
     return random_sequence
 
-def generate_background_cai(protein_sequence, weighted_codons, w_values, options):
+def generate_background_cai(protein_sequence, cds_sequence, weighted_codons, w_values, options):
     background_cai = []
 
     # To make this deterministic we set the random seed
@@ -221,13 +221,13 @@ def generate_background_cai(protein_sequence, weighted_codons, w_values, options
 
     for i in range(options.samples):
          debug("Generating random sequence "+str(i+1))
-         background_cai.append(generate_random_cai(protein_sequence,weighted_codons,options.random,w_values))
+         background_cai.append(generate_random_cai(protein_sequence,cds_sequence, weighted_codons,options.random,w_values))
 
     return background_cai
 
 
-def generate_random_cai(protein_sequence, weighted_codons, randomtype, w_values):
-    seq = generate_random_sequence(protein_sequence, weighted_codons, randomtype)
+def generate_random_cai(protein_sequence, cds_sequence, weighted_codons, randomtype, w_values):
+    seq = generate_random_sequence(protein_sequence, cds_sequence, weighted_codons, randomtype)
     cai = calculate_cai(seq,protein_sequence,w_values)
     return cai
 
